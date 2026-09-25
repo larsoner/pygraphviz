@@ -34,3 +34,32 @@ def test_scraper(tmpdir):
     scraper(block, block_vars, gallery_conf)
     # Target should exist
     assert os.path.isfile(out_file)
+
+
+def test_scraper_only_block_pngs(tmpdir):
+    """Only PNGs named in the block are collected, e.g. for parallel builds."""
+    pytest.importorskip("sphinx_gallery")
+    scraper = _get_sg_image_scraper()
+    src_dir = str(tmpdir)
+    A = pgv.AGraph()
+    A.add_edge(1, 2)
+    A.layout()
+    # "other.png" stands in for an image written by another example in the
+    # same directory that is running at the same time
+    for name in ("mine.png", "other.png"):
+        A.draw(os.path.join(src_dir, name))
+    out_dir = os.path.join(src_dir, "build", "html")
+    os.makedirs(out_dir)
+    out_files = [os.path.join(out_dir, f"img_{ii}.png") for ii in range(2)]
+    block = ("code", 'A.draw("mine.png")', 1)
+    block_vars = {
+        "image_path_iterator": iter(out_files),
+        "src_file": os.path.join(src_dir, "mine.py"),
+    }
+    gallery_conf = {"src_dir": src_dir, "builder_name": "html"}
+    rst = scraper(block, block_vars, gallery_conf)
+    assert os.path.isfile(out_files[0])
+    assert not os.path.isfile(out_files[1])
+    assert "img_0.png" in rst
+    assert not os.path.isfile(os.path.join(src_dir, "mine.png"))
+    assert os.path.isfile(os.path.join(src_dir, "other.png"))

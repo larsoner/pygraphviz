@@ -27,6 +27,11 @@ class PNGScraper:
             'image_scrapers': ('matplotlib', 'pygraphviz'),
         }
 
+    Only ``.png`` files whose names appear in the code block that was just
+    executed are collected (e.g., ``"star.png"`` in ``A.draw("star.png")``), so
+    examples in the same directory can be built in parallel (sphinx-gallery's
+    ``parallel`` option) without collecting each other's images.
+
     This class is based on the recipe provide in [1]_.
 
     References
@@ -50,8 +55,10 @@ class PNGScraper:
         Parameters
         ----------
         block : tuple
-            A tuple containing the (label, content, line_number of the
-            block.
+            A tuple containing the (label, content, line_number) of the
+            block. Only PNG files whose names appear in ``content`` are
+            collected. If ``None``, all PNG files in the example's directory are
+            collected.
         block_vars : dict
             Dict of block variables
         gallery_conf : dict
@@ -68,9 +75,12 @@ class PNGScraper:
         except ImportError as e:
             raise ImportError("You must install `sphinx_gallery`") from e
 
-        # Find all PNG files in the directory of this example
+        # Find the PNG files in the directory of this example that were written
+        # by this code block
         path_current_example = os.path.dirname(block_vars["src_file"])
         pngs = sorted(glob(os.path.join(path_current_example, "*.png")))
+        if block is not None:
+            pngs = [png for png in pngs if os.path.basename(png) in block[1]]
 
         # Iterate through PNGs and copy them to sphinx-gallery output dir
         image_names = []
