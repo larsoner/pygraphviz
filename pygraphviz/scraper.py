@@ -40,9 +40,6 @@ class PNGScraper:
        https://sphinx-gallery.github.io/stable/advanced.html
     """
 
-    def __init__(self):
-        self.seen = set()
-
     def __repr__(self):
         return "PNGScraper"
 
@@ -82,15 +79,14 @@ class PNGScraper:
         if block is not None:
             pngs = [png for png in pngs if os.path.basename(png) in block[1]]
 
-        # Iterate through PNGs and copy them to sphinx-gallery output dir
+        # Move PNGs to the sphinx-gallery output dir (so they can't be collected
+        # twice, while a later example can still write a file with the same name)
         image_names = []
         image_path_iterator = block_vars["image_path_iterator"]
         for png in pngs:
-            if png not in self.seen:
-                self.seen |= set(png)
-                this_image_path = next(image_path_iterator)
-                image_names.append(this_image_path)
-                shutil.move(png, this_image_path)
+            this_image_path = next(image_path_iterator)
+            image_names.append(this_image_path)
+            shutil.move(png, this_image_path)
 
         # Use figure_rst to generate rST for image files
         return figure_rst(image_names, gallery_conf["src_dir"])

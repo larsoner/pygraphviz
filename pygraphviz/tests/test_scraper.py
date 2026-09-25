@@ -63,3 +63,26 @@ def test_scraper_only_block_pngs(tmpdir):
     assert "img_0.png" in rst
     assert not os.path.isfile(os.path.join(src_dir, "mine.png"))
     assert os.path.isfile(os.path.join(src_dir, "other.png"))
+
+
+def test_scraper_same_name_twice(tmpdir):
+    """A file name reused by a later block (or example) is collected again."""
+    pytest.importorskip("sphinx_gallery")
+    scraper = _get_sg_image_scraper()
+    src_dir = str(tmpdir)
+    A = pgv.AGraph()
+    A.add_edge(1, 2)
+    A.layout()
+    out_dir = os.path.join(src_dir, "build", "html")
+    os.makedirs(out_dir)
+    block = ("code", 'A.draw("same.png")', 1)
+    gallery_conf = {"src_dir": src_dir, "builder_name": "html"}
+    for ii in range(2):
+        A.draw(os.path.join(src_dir, "same.png"))
+        out_file = os.path.join(out_dir, f"img_{ii}.png")
+        block_vars = {
+            "image_path_iterator": iter([out_file]),
+            "src_file": os.path.join(src_dir, f"example_{ii}.py"),
+        }
+        scraper(block, block_vars, gallery_conf)
+        assert os.path.isfile(out_file)
